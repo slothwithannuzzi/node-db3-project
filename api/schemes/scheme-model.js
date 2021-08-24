@@ -25,7 +25,28 @@ function find() { // EXERCISE A
           .orderBy("sc.scheme_id")
 }
 
-function findById(scheme_id) { // EXERCISE B
+async function findById(scheme_id) { 
+  
+
+  const steps =  await db("schemes as sc")
+  .leftJoin("steps as st", "sc.scheme_id", "st.scheme_id")
+  .select("sc.scheme_name", "st.*")
+  .where("sc.scheme_id", scheme_id)
+  .orderBy("st.step_number")
+      
+    const stepsarr = await db("steps")
+                            .select("step_id", "step_number", "instructions")
+                            .where("scheme_id", scheme_id)
+                            .orderBy("step_number")
+    
+    const scheme = {
+         scheme_id: scheme_id,
+         scheme_name: steps[0].scheme_name,
+         steps: stepsarr
+      }
+      return scheme
+
+  // EXERCISE B
   /*
     1B- Study the SQL query below running it in SQLite Studio against `data/schemes.db3`:
 
@@ -91,9 +112,16 @@ function findById(scheme_id) { // EXERCISE B
         "steps": []
       }
   */
+
 }
 
 function findSteps(scheme_id) { // EXERCISE C
+
+  return db("steps as st")
+          .leftJoin("schemes as sc", "st.scheme_id", "sc.scheme_id")
+          .where("st.scheme_id", scheme_id)
+          .select("step_id", "step_number", "instructions", "scheme_name")
+          .orderBy("step_number")
   /*
     1C- Build a query in Knex that returns the following data.
     The steps should be sorted by step_number, and the array
@@ -116,18 +144,25 @@ function findSteps(scheme_id) { // EXERCISE C
   */
 }
 
-function add(scheme) { // EXERCISE D
+async function add(scheme) { // EXERCISE D
   /*
     1D- This function creates a new scheme and resolves to _the newly created scheme_.
   */
+    
+    const [scheme_id] = await db("schemes").insert(scheme)
+    return findById(scheme_id);
 }
 
-function addStep(scheme_id, step) { // EXERCISE E
+async function addStep(scheme_id, step) { // EXERCISE E
   /*
     1E- This function adds a step to the scheme with the given `scheme_id`
     and resolves to _all the steps_ belonging to the given `scheme_id`,
     including the newly created one.
   */
+ const {step_number, instructions} = step
+    await db("steps")
+          .insert({step_number, instructions, scheme_id})
+    return findSteps(scheme_id);
 }
 
 module.exports = {
